@@ -1,0 +1,16 @@
+{
+  "policyId": "3",
+  "network": "inkSepolia",
+  "chainId": 763373,
+  "contract": "0xcE9A8305391747f8bF34B18Ae37a434c59060Ce2",
+  "owner": "0x9dabBF114698bd9bFBF6222b9FD6Cd967ECD3850",
+  "agent": "0x79D379be56d410924340e2aB4F57E4CA00b993e8",
+  "merchants": [
+    "Bad Ass Coffee of Hawaii"
+  ],
+  "totalCapCents": "100000",
+  "perPurchaseCapCents": "4000",
+  "maxCharges": 50,
+  "expiresAt": 1794205113,
+  "createTx": "0x18ce0dc6da20f448448878d0a6473be02c0b3ef1bc6377b89ab64a2a8e34a948"
+}

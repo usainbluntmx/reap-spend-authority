@@ -1,34 +1,25 @@
-import { arbitrum, arbitrumSepolia, base, baseSepolia } from "@reown/appkit/networks";
 import type { AppKitNetwork } from "@reown/appkit/networks";
 
-export const monadTestnet = {
-    id: 10143,
-    name: "Monad Testnet",
+export const inkSepolia = {
+    id: 763373,
+    name: "Ink Sepolia",
     nativeCurrency: {
-        name: "MON",
-        symbol: "MON",
+        name: "Ether",
+        symbol: "ETH",
         decimals: 18,
     },
     rpcUrls: {
         default: {
-            http: ["https://testnet-rpc.monad.xyz"],
+            http: ["https://rpc-gel-sepolia.inkonchain.com"],
         },
     },
     blockExplorers: {
         default: {
-            name: "Monad Explorer",
-            url: "https://testnet.monadexplorer.com",
+            name: "Ink Explorer",
+            url: "https://explorer-sepolia.inkonchain.com",
         },
     },
     testnet: true,
 } as const satisfies AppKitNetwork;
 
-export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
-    arbitrum,
-    arbitrumSepolia,
-    base,
-    baseSepolia,
-    monadTestnet,
-];
-
-export { arbitrum, arbitrumSepolia, base, baseSepolia };
+export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [inkSepolia];

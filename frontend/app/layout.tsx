@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "template-evm",
-  description: "Template EVM dApp",
+  title: "Spend Authority",
+  description: "Onchain spending policy for AI agent purchases with Reap, on Ink Sepolia",
 };
 
 export default function RootLayout({

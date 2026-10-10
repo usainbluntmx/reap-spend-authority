@@ -1,5 +1,5 @@
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { networks } from "./chains";
+import { inkSepolia, networks } from "./chains";
 
 export const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || "";
 
@@ -15,11 +15,12 @@ export const wagmiAdapter = new WagmiAdapter({
 export const appKitConfig = {
     projectId,
     networks,
+    defaultNetwork: inkSepolia,
     adapters: [wagmiAdapter],
     metadata: {
-        name: "template-evm",
-        description: "Template EVM dApp",
-        url: "https://localhost:3000",
+        name: "Spend Authority",
+        description: "Onchain spending policy for AI agent purchases with Reap",
+        url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
         icons: [],
     },
 };

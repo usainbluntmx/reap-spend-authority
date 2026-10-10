@@ -1,517 +1,131 @@
-# template-evm
+# reap-spend-authority
 
-A personal, production-ready template for building EVM-compatible decentralized applications (dApps) and protocols. Designed to be cloned, configured, and deployed quickly for hackathons, competitions, or personal projects.
+**An onchain spending policy that decides when an AI agent may buy through the Reap Agentic Payments API.**
 
-Supports **Arbitrum**, **Base**, and **Monad** out of the box, with easy extensibility to any EVM-compatible chain.
+Built for the Reap x AIBM Agentic Buildathon — track: *Best Bridge Between Onchain and Real World*. Sandbox only, no real funds.
 
----
+- Demo video: `<VIDEO_URL>`
+- Repo: `<REPO_URL>`
+- Live demo: `<LIVE_URL>` (buying needs a demo key, see submission notes; quoting and policy checks are public)
 
-## Table of Contents
+## The problem
 
-- [What Is This?](#what-is-this)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Getting Started](#getting-started)
-- [Backend Guide](#backend-guide)
-- [Frontend Guide](#frontend-guide)
-- [Environment Variables](#environment-variables)
-- [Available Scripts](#available-scripts)
-- [Deploying a Smart Contract](#deploying-a-smart-contract)
-- [Verifying a Smart Contract](#verifying-a-smart-contract)
-- [Running Tests](#running-tests)
-- [Deploying the Frontend to Vercel](#deploying-the-frontend-to-vercel)
-- [Using This Template for a New Project](#using-this-template-for-a-new-project)
-- [Supported Networks](#supported-networks)
-- [Glossary](#glossary)
+Agents can now buy real goods with a card. But "the agent has a card" is not a spending policy. Who set the limit? Was it checked before the money moved? Can the owner stop it? Where is the audit trail?
 
----
+## The idea
 
-## What Is This?
+`SpendAuthority` is a smart contract (Ink Sepolia) where the **owner** writes the rules and the **agent** can only act inside them:
 
-`template-evm` is a full-stack monorepo template built to accelerate the development of Ethereum-compatible dApps. It comes pre-configured with everything you need:
+- total budget, per-purchase cap, max number of charges, expiry
+- merchant allowlist (hashed, case-insensitive)
+- revocable at any time by the owner
 
-- A **Hardhat** environment for writing, compiling, testing, and deploying Solidity smart contracts.
-- A **Next.js** frontend with wallet connection powered by Reown AppKit and Wagmi.
-- Multi-chain support with a centralized network configuration.
-- Automated deploy and verification scripts.
-- Code quality tools (ESLint, Prettier, solhint) already configured.
+A small gateway sits between the agent and Reap. The policy is checked against the quote's **`finalAmount`** (item + shipping + tax), not the catalog price, so the agent can't be surprised by shipping.
 
-The goal is simple: clone this repo, replace the example contract and frontend with your own, fill in your environment variables, and you are ready to ship.
-
----
-
-## Tech Stack
-
-### Backend
-
-| Tool | Purpose |
-|---|---|
-| [Hardhat v2](https://hardhat.org/) | Ethereum development environment |
-| [Solidity ^0.8.36](https://soliditylang.org/) | Smart contract language |
-| [OpenZeppelin Contracts](https://www.openzeppelin.com/contracts) | Secure, audited contract libraries |
-| [hardhat-deploy](https://github.com/wighawag/hardhat-deploy) | Deterministic deployment system |
-| [hardhat-toolbox](https://hardhat.org/hardhat-runner/plugins/nomicfoundation-hardhat-toolbox) | Bundled Hardhat plugins |
-| [hardhat-network-helpers](https://hardhat.org/hardhat-network/docs/helpers) | Test utilities (time manipulation, snapshots) |
-| [hardhat-gas-reporter](https://github.com/cgewecke/hardhat-gas-reporter) | Gas usage reports during tests |
-| [solidity-coverage](https://github.com/sc-forks/solidity-coverage) | Code coverage for Solidity |
-| [TypeChain](https://github.com/dethcrypto/TypeChain) | TypeScript bindings for contracts |
-| [Mocha](https://mochajs.org/) + [Chai](https://www.chaijs.com/) | Testing framework and assertions |
-| [solhint](https://protofire.github.io/solhint/) | Solidity linter |
-| [Prettier](https://prettier.io/) + [prettier-plugin-solidity](https://github.com/prettier-solidity/prettier-plugin-solidity) | Code formatter |
-| [dotenv](https://github.com/motdotla/dotenv) | Environment variable management |
-| [ethers v6](https://docs.ethers.org/v6/) | Ethereum library |
-
-### Frontend
-
-| Tool | Purpose |
-|---|---|
-| [Next.js 16](https://nextjs.org/) | React framework with SSR and Vercel-native deployment |
-| [React 19](https://react.dev/) | UI library |
-| [TypeScript](https://www.typescriptlang.org/) | Typed JavaScript |
-| [Wagmi](https://wagmi.sh/) | React hooks for Ethereum |
-| [Viem](https://viem.sh/) | TypeScript Ethereum client |
-| [Reown AppKit](https://reown.com/appkit) | Wallet connection modal and session management |
-| [@x402](https://x402.org) + [@solana/kit](https://github.com/solana-labs/kit) | Runtime deps of AppKit's Base Smart Wallet connector (cdp-sdk) — required for `next build` |
-| [TanStack Query](https://tanstack.com/query) | Async state management |
-| [Tailwind CSS v4](https://tailwindcss.com/) | Utility-first CSS framework |
-| [shadcn/ui](https://ui.shadcn.com/) | Accessible, composable UI components |
-| [ESLint](https://eslint.org/) | JavaScript/TypeScript linter |
-| [Prettier](https://prettier.io/) | Code formatter |
-
----
-
-## Project Structure
+## Flow
 
 ```
-template-evm/
-├── .gitignore                  # Global Git ignore rules
-├── backend/
-│   ├── contracts/
-│   │   └── Counter.sol         # Example contract (replace with yours)
-│   ├── deploy/
-│   │   └── 01_deploy_counter.ts  # Deploy script (one file per contract)
-│   ├── scripts/
-│   │   └── deploy-and-verify.ts  # Automated deploy + verify in one command
-│   ├── test/
-│   │   └── Counter.test.ts     # Contract tests
-│   ├── typechain-types/        # Auto-generated TypeScript typings (do not edit)
-│   ├── .env                    # Your private environment variables (never commit)
-│   ├── .prettierrc             # Prettier config for Solidity
-│   ├── .solhint.json           # Solidity linting rules
-│   ├── hardhat.config.ts       # Hardhat + network + plugin configuration
-│   ├── package.json
-│   └── tsconfig.json
-└── frontend/
-    ├── app/
-    │   ├── globals.css         # Global styles
-    │   ├── layout.tsx          # Root layout with AppKitProvider
-    │   └── page.tsx            # Home page
-    ├── components/ui/          # shadcn/ui components (add via CLI)
-    ├── config/
-    │   ├── appkit.ts           # Reown AppKit + Wagmi adapter config
-    │   └── chains.ts           # Centralized network definitions
-    ├── context/
-    │   └── AppKitProvider.tsx  # Global wallet provider
-    ├── hooks/                  # Custom React hooks (add yours here)
-    ├── lib/
-    │   └── utils.ts            # shadcn/ui utility functions
-    ├── public/                 # Static assets
-    ├── .env.local              # Your private environment variables (never commit)
-    ├── .prettierrc             # Prettier config for TypeScript/React
-    ├── components.json         # shadcn/ui configuration
-    ├── eslint.config.mjs       # ESLint configuration
-    ├── next.config.ts          # Next.js configuration
-    ├── package.json
-    └── tsconfig.json
+agent ──query──▶ gateway ──▶ Reap: search, details, quote (finalAmount)
+                    │
+                    ├─ SpendAuthority.check()        free view call → verdict
+                    │     denied → stop, no checkout opened
+                    ├─ SpendAuthority.reserve()      tx: budget locked onchain
+                    ├─ Reap: create checkout         human approves on Reap's hosted page
+                    └─ poll Reap
+                          COMPLETED        → SpendAuthority.confirm(orderId)   (frees any difference)
+                          FAILED / EXPIRED → SpendAuthority.release()          (budget returned)
 ```
 
----
+Every step emits events carrying `quoteId`, `checkoutId` and Reap `orderId`, so the onchain log is a complete audit trail of what the agent bought and why it was allowed.
 
-## Prerequisites
+## Real evidence (Ink Sepolia, chain 763373)
 
-Before using this template, make sure you have the following installed on your machine:
+| What | Value |
+|---|---|
+| Contract | `0xcE9A8305391747f8bF34B18Ae37a434c59060Ce2` |
+| Owner | `0x9dabBF114698bd9bFBF6222b9FD6Cd967ECD3850` |
+| Agent | `0x79D379be56d410924340e2aB4F57E4CA00b993e8` |
+| Policy #1 | 100 USD total · 40 USD per purchase · 3 charges · 48 h · merchant "Bad Ass Coffee of Hawaii" |
+| Live policy #3 | 1000 USD total · 40 USD per purchase · 50 charges · 30 days · same merchant. Create tx `0x18ce0dc6da20f448448878d0a6473be02c0b3ef1bc6377b89ab64a2a8e34a948` |
+| Create policy tx | `0xe4d4a11d3683bdbc363f39bb52ef648f364eae82f1a415c7ba02534ef3e8fe3f` |
+| Reserve tx | `0x9fe9dad8ba9f55c3db74f8b30e5dac80fb84fd83a7e3a81a8d96aae1f8d5b038` |
+| Confirm tx | `0x9d716e5a3217a45345820aa843d126471896808a29c12a70b6f47d05b000957a` |
+| Reap order #1 | `ord_01M4HTG358NATV8P3C4YQV7FAN` — Vanilla Macnut coffee, 27.67 USD |
+| Reap order #2 | `ord_01M4HX2BZET32E6WB0EVNA73XB` — Vanilla Macnut coffee, 27.67 USD (reserve `0x4ad7…b9a9`, confirm `0xa329…f35a`; full hashes: `<TX_RESERVE_2>`, `<TX_CONFIRM_2>`) |
+| Denied case | 100% Kona French Roast, 78.16 USD → `OverPerPurchaseCap`, no checkout opened |
 
-| Requirement | Minimum Version | Check |
+Explorer: https://explorer-sepolia.inkonchain.com
+
+## Trust model — what this is and is not
+
+Being honest about the limits:
+
+- Reap **mandates are not available yet** in the sandbox (`MANDATES_AVAILABLE=false`), so Reap itself cannot enforce our policy.
+- The gateway holds both the Reap API key and the agent key. A **compromised gateway could bypass the contract** and call Reap directly. The contract is not a hard guarantee over Reap; it is the owner-set budget ledger and the audit trail the gateway commits to.
+- What the contract does give: limits set by the owner (not the agent), budget accounting with reserve/confirm/release, an immutable public trail, and instant revocation.
+- A human still approves each charge on Reap's hosted card page.
+- Once Reap mandates exist, the same policy terms can be mirrored there and the gap closes.
+
+Other limits: sandbox only · purchases stored in a JSON file (`.data/purchases.json`) · amounts in USD cents only · public RPC can lag (reads and simulations are retried, writes never are) · Reap may return the same quote for ~15 min, so reused quotes are rejected (`QUOTE_REUSED`) rather than overwritten · no LLM in the loop yet — the gateway exposes plain HTTP tools; an MCP wrapper is the natural next step.
+
+## Repo layout
+
+```
+backend/    Hardhat: SpendAuthority.sol, tests (15), deploy / create-policy / revoke-policy scripts
+frontend/   Next.js: /agent UI, /api/{quote,buy,finalize,policy}, lib/ (reap-shop, policy, gateway, store), CLI scripts
+docs/DEMO.md   demo shot list
+docs/DEPLOY.md  Dokploy deployment guide (Dockerfile in frontend/)
+```
+
+## Run it
+
+Requirements: Node 20+, a funded Ink Sepolia wallet, a Reap sandbox API key.
+
+```bash
+# backend
+cd backend && npm install
+cp .env.example .env            # PRIVATE_KEY, INK_SEPOLIA_RPC_URL
+npx hardhat test                # 15 passing
+npx hardhat run scripts/deploy-spend-authority.ts --network inkSepolia
+npx hardhat run scripts/create-policy.ts --network inkSepolia
+# owner can stop the agent at any time:
+npx hardhat run scripts/revoke-policy.ts --network inkSepolia
+
+# frontend
+cd ../frontend && npm install
+# create .env.local (see below), then enroll a card once:
+npm run reap-enroll && npm run reap-check
+npm run dev                     # http://localhost:3000 → /agent
+# or from the terminal:
+npm run agent-run -- "badass coffee"
+npm run agent-status
+```
+
+`create-policy.ts` knobs: `TOTAL_USD`, `PER_PURCHASE_USD`, `MAX_CHARGES`, `HOURS`, `MERCHANTS`, `AGENT_FUND_ETH`.
+
+### Environment
+
+| Where | Variable | Purpose |
 |---|---|---|
-| [Node.js](https://nodejs.org/) | v24 LTS or higher | `node --version` |
-| [npm](https://www.npmjs.com/) | v11 or higher | `npm --version` |
-| [Git](https://git-scm.com/) | Any recent version | `git --version` |
-
-You will also need:
-
-- A crypto wallet (e.g., [MetaMask](https://metamask.io/)) to interact with the dApp.
-- A **Reown Project ID** (free) from [cloud.reown.com](https://cloud.reown.com) for wallet connection.
-- RPC URLs for the networks you want to deploy to (e.g., from [Alchemy](https://www.alchemy.com/) or [Infura](https://infura.io/)).
-- Explorer API keys for contract verification (e.g., [Arbiscan](https://arbiscan.io/), [Basescan](https://basescan.org/)).
-
----
-
-## Getting Started
-
-### 1. Clone the repository
-
-```bash
-git clone <your-repo-url>
-cd template-evm
-```
-
-### 2. Install backend dependencies
-
-```bash
-cd backend
-npm install
-```
-
-### 3. Install frontend dependencies
-
-```bash
-cd ../frontend
-npm install
-```
-
-### 4. Configure environment variables
-
-See the [Environment Variables](#environment-variables) section below.
-
----
-
-## Backend Guide
-
-The backend is a Hardhat project located in the `backend/` folder.
-
-### Compile contracts
-
-```bash
-cd backend
-npm run compile
-```
-
-This compiles all `.sol` files in `contracts/` and auto-generates TypeScript typings in `typechain-types/`.
-
-### Run tests
-
-```bash
-npm run test
-```
-
-### Check code coverage
-
-```bash
-npm run coverage
-```
-
-### Start a local blockchain node
-
-```bash
-npm run node
-```
-
-This starts a local Hardhat node at `http://127.0.0.1:8545` with pre-funded test accounts. Keep this terminal open while developing locally.
-
-### Clean build artifacts
-
-```bash
-npm run clean
-```
-
----
-
-## Frontend Guide
-
-The frontend is a Next.js project located in the `frontend/` folder.
-
-### Start development server
-
-```bash
-cd frontend
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Build for production
-
-```bash
-npm run build
-```
-
-### Start production server locally
-
-```bash
-npm run start
-```
-
-### Add a shadcn/ui component
-
-```bash
-npx shadcn@latest add button
-```
-
-Replace `button` with any component from the [shadcn/ui catalog](https://ui.shadcn.com/docs/components).
-
----
-
-## Environment Variables
-
-### Backend — `backend/.env`
-
-```bash
-# Your wallet private key (without 0x prefix)
-PRIVATE_KEY=
-
-# RPC URLs — get these from Alchemy, Infura, or your provider
-ARBITRUM_RPC_URL=
-ARBITRUM_SEPOLIA_RPC_URL=
-BASE_RPC_URL=
-BASE_SEPOLIA_RPC_URL=
-MONAD_TESTNET_RPC_URL=
-
-# Explorer API keys for contract verification
-ARBISCAN_API_KEY=
-BASESCAN_API_KEY=
-
-# Set to "true" to enable gas reporting during tests
-REPORT_GAS=false
-```
-
-> ⚠️ Never commit your `.env` file. It is already protected by `.gitignore`.
-
-### Frontend — `frontend/.env.local`
-
-```bash
-# Get your Project ID at https://cloud.reown.com
-NEXT_PUBLIC_REOWN_PROJECT_ID=
-```
-
-> ⚠️ Never commit your `.env.local` file. It is already protected by `.gitignore`.
-
----
-
-## Available Scripts
-
-### Backend (`cd backend`)
-
-| Command | Description |
-|---|---|
-| `npm run compile` | Compile all Solidity contracts |
-| `npm run test` | Run all tests |
-| `npm run coverage` | Run tests with coverage report |
-| `npm run node` | Start local Hardhat node |
-| `npm run clean` | Remove build artifacts |
-| `npm run deploy:local` | Deploy to local Hardhat node |
-| `npm run deploy:arbitrum` | Deploy to Arbitrum Mainnet |
-| `npm run deploy:arbitrumSepolia` | Deploy to Arbitrum Sepolia testnet |
-| `npm run deploy:base` | Deploy to Base Mainnet |
-| `npm run deploy:baseSepolia` | Deploy to Base Sepolia testnet |
-| `npm run deploy:monadTestnet` | Deploy to Monad Testnet |
-| `npm run verify:arbitrum` | Verify contract on Arbitrum Mainnet |
-| `npm run verify:arbitrumSepolia` | Verify contract on Arbitrum Sepolia |
-| `npm run verify:base` | Verify contract on Base Mainnet |
-| `npm run verify:baseSepolia` | Verify contract on Base Sepolia |
-
-### Frontend (`cd frontend`)
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start development server at localhost:3000 |
-| `npm run build` | Build for production |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-
----
-
-## Deploying a Smart Contract
-
-### To a local node
-
-Open two terminals:
-
-**Terminal 1 — start the node:**
-```bash
-cd backend
-npm run node
-```
-
-**Terminal 2 — deploy:**
-```bash
-cd backend
-npm run deploy:local
-```
-
-### To a testnet or mainnet
-
-Make sure your `backend/.env` has the correct `PRIVATE_KEY` and RPC URL for your target network, then run:
-
-```bash
-npm run deploy:arbitrumSepolia
-```
-
-Replace `arbitrumSepolia` with your target network. The deploy script will automatically wait for enough confirmations before proceeding.
-
-### Automated deploy + verify in one command
-
-```bash
-npx hardhat run scripts/deploy-and-verify.ts --network arbitrumSepolia
-```
-
-This script deploys the contract, waits 30 seconds for the explorer to index it, and then verifies it automatically.
-
----
-
-## Verifying a Smart Contract
-
-Contract verification makes your source code publicly readable on block explorers (Arbiscan, Basescan, etc.).
-
-### Verify after deploy
-
-```bash
-npm run verify:arbitrumSepolia
-```
-
-You can also verify manually with a specific address:
-
-```bash
-npx hardhat verify --network arbitrumSepolia <CONTRACT_ADDRESS>
-```
-
-If your constructor takes arguments:
-
-```bash
-npx hardhat verify --network arbitrumSepolia <CONTRACT_ADDRESS> <ARG1> <ARG2>
-```
-
-> Make sure your explorer API key is set in `backend/.env` before verifying.
-
----
-
-## Running Tests
-
-```bash
-cd backend
-npm run test
-```
-
-To run a specific test file:
-
-```bash
-npx hardhat test test/Counter.test.ts
-```
-
-To run with gas reporting enabled:
-
-```bash
-REPORT_GAS=true npm run test
-```
-
-To run with coverage:
-
-```bash
-npm run coverage
-```
-
-Coverage results will appear in `backend/coverage/index.html`. Open it in a browser for a detailed line-by-line report.
-
----
-
-## Deploying the Frontend to Vercel
-
-1. Push your repository to GitHub.
-2. Go to [vercel.com](https://vercel.com) and click **Add New Project**.
-3. Import your GitHub repository.
-4. Set the **Root Directory** to `frontend`.
-5. Add your environment variable: `NEXT_PUBLIC_REOWN_PROJECT_ID`.
-6. Click **Deploy**.
-
-Vercel will automatically redeploy every time you push to your main branch.
-
----
-
-## Using This Template for a New Project
-
-1. Clone the repo and set up environment variables as described above.
-2. Replace `backend/contracts/Counter.sol` with your own contract.
-3. Update `backend/deploy/01_deploy_counter.ts` with your contract name and constructor arguments.
-4. Update `backend/test/Counter.test.ts` with tests for your contract.
-5. Compile and test: `npm run compile && npm run test`.
-6. Update `frontend/app/page.tsx` with your dApp UI.
-7. Update `frontend/config/appkit.ts` with your app name, description, and URL.
-8. Deploy your contract to the target network.
-9. Connect your frontend to the deployed contract using the generated TypeChain types from `backend/typechain-types/`.
-10. Deploy the frontend to Vercel.
-
----
-
-## Supported Networks
-
-| Network | Type | Chain ID |
-|---|---|---|
-| Hardhat (local) | Local | 31337 |
-| Localhost | Local | 31337 |
-| Arbitrum One | Mainnet | 42161 |
-| Arbitrum Sepolia | Testnet | 421614 |
-| Base | Mainnet | 8453 |
-| Base Sepolia | Testnet | 84532 |
-| Monad Testnet | Testnet | 10143 |
-
-### Adding a new network
-
-**Backend — `backend/hardhat.config.ts`:**
-
-```typescript
-newNetwork: {
-  chainId: 12345,
-  url: process.env.NEW_NETWORK_RPC_URL || "",
-  accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
-},
-```
-
-**Frontend — `frontend/config/chains.ts`:**
-
-```typescript
-export const newNetwork = {
-  id: 12345,
-  name: "New Network",
-  nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: ["https://rpc.newnetwork.xyz"] } },
-  blockExplorers: { default: { name: "Explorer", url: "https://explorer.newnetwork.xyz" } },
-} as const satisfies AppKitNetwork;
-```
-
-Then add it to the `networks` array in the same file.
-
----
-
-## Glossary
-
-**dApp** — Decentralized application. An app whose backend logic runs on a blockchain via smart contracts.
-
-**EVM** — Ethereum Virtual Machine. The runtime environment for smart contracts on Ethereum and compatible chains (Arbitrum, Base, Monad, etc.).
-
-**Smart Contract** — A self-executing program deployed on a blockchain. Once deployed, its code cannot be changed.
-
-**ABI** — Application Binary Interface. Describes the functions and events of a smart contract so frontends can interact with it.
-
-**RPC URL** — Remote Procedure Call URL. The endpoint your app uses to communicate with a blockchain node.
-
-**Testnet** — A public blockchain network used for testing. Tokens have no real value. Use testnets before deploying to mainnet.
-
-**Mainnet** — The live, production blockchain where real assets are at stake.
-
-**Gas** — The fee paid to execute transactions and smart contract functions on an EVM chain.
-
-**Wallet** — Software (e.g., MetaMask) that manages your private keys and lets you sign transactions.
-
-**Private Key** — A secret cryptographic key that proves ownership of a wallet. Never share it or commit it to Git.
-
-**Contract Verification** — The process of uploading your contract source code to a block explorer so anyone can read and audit it.
-
-**TypeChain** — A tool that generates TypeScript type definitions from your compiled contracts, enabling type-safe contract interactions.
-
-**hardhat-deploy** — A Hardhat plugin that manages deterministic deployments and keeps track of deployed contract addresses across networks.
-
-**Reown AppKit** — A wallet connection library (formerly WalletConnect AppKit) that provides a customizable modal for connecting Web3 wallets.
-
-**Wagmi** — A collection of React hooks for interacting with Ethereum, built on top of Viem.
-
-**Viem** — A lightweight, type-safe TypeScript library for Ethereum interactions.
+| frontend | `REAP_API_KEY` | Reap sandbox key |
+| frontend | `REAP_BASE_URL`, `REAP_VERSION` | Reap endpoint and version (`2025-02-14`) |
+| frontend | `DEMO_USER_ID`, `DEMO_USER_EMAIL` | Enrolled user |
+| frontend | `GATEWAY_PRIVATE_KEY` | Agent key (signs reserve/confirm/release) |
+| frontend | `GATEWAY_RPC_URL` | Optional RPC override |
+| frontend | `DEMO_SHIP_*` | Optional shipping address defaults |
+| frontend | `DEMO_ACCESS_KEY` | If set, `/api/buy` and `/api/finalize` require header `x-demo-key` (the UI shows a key field) |
+| frontend | `REAP_ENROLLMENT_ID` | Enrollment id; overrides `.data/enrollment.json` (handy in containers) |
+| frontend | `REAP_RETURN_URL` | Where Reap redirects after approval (default example.com; e.g. `http://localhost:3000/agent`) |
+| frontend | `REAL_APPROVAL=1` | Disable the sandbox simulate header |
+| frontend | `NEXT_PUBLIC_REOWN_PROJECT_ID` | Optional; `/agent` does not use the wallet modal |
+| backend | `PRIVATE_KEY`, `INK_SEPOLIA_RPC_URL` | Owner/deployer wallet and RPC |
+
+Never commit `.env`, `.env.local` or `.data/`.
+
+## Rules compliance
+
+Sandbox only; no real payments; Reap Agentic Payments API used for search, quote, checkout and order status; all onchain activity on a testnet; no credentials in the repo.
+
+## What's next
+
+MCP wrapper so any LLM agent can call the gateway as a tool · mirror policy into Reap mandates when available · multi-policy / multi-agent support · stablecoin-denominated budgets · replace the JSON store with a database.

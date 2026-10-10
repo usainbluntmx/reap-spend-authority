@@ -55,3 +55,6 @@ Thumbs.db
 # =============================
 .vscode/
 .idea/frontend/.data/
+
+# Spend Authority runtime data
+frontend/.data/
